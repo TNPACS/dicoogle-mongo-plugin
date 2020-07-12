@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<configuration>
+    <ConnectionString>mongodb://localhost:27017</ConnectionString>
+    <DatabaseName>tnpacs</DatabaseName>
+    <Indexes>
+        <Index>AccessionNumber</Index>
+        <TextIndex>PatientName</TextIndex>
+        <CompoundIndex order="descending">
+            <Field order="descending">StudyInstanceUID</Field>
+            <Field order="ascending">SeriesInstanceUID</Field>
+            <Field>SOPInstanceUID</Field>
+        </CompoundIndex>
+    </Indexes>
+</configuration>

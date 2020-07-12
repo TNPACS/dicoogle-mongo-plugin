@@ -1,0 +1,5 @@
+.idea/
+out/
+lib/
+*.log.txt
+*.iml
