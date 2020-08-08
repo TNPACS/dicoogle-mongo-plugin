@@ -21,6 +21,7 @@ import java.util.List;
 @PluginImplementation
 public class MongoPluginSet implements PluginSet {
     private static final Logger logger = LoggerFactory.getLogger(MongoPluginSet.class);
+    private ConfigurationHolder settings;
     private final List<IndexerInterface> indexPlugins = new ArrayList<>();
     private final List<QueryInterface> queryPlugins = new ArrayList<>();
     private final List<StorageInterface> storagePlugins = new ArrayList<>();
@@ -54,13 +55,14 @@ public class MongoPluginSet implements PluginSet {
     }
 
     @Override
-    public void setSettings(ConfigurationHolder configurationHolder) {
-        if (!MongoUtils.isInitialized()) MongoUtils.initialize(configurationHolder);
+    public void setSettings(ConfigurationHolder settings) {
+        if (!MongoUtils.isInitialized()) MongoUtils.initialize(settings);
+        this.settings = settings;
     }
 
     @Override
     public ConfigurationHolder getSettings() {
-        return null;
+        return settings;
     }
 
     @Override

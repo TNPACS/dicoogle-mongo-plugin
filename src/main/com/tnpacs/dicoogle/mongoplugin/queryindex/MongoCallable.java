@@ -1,9 +1,13 @@
 package com.tnpacs.dicoogle.mongoplugin.queryindex;
 
+import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.model.Filters;
 import com.tnpacs.dicoogle.mongoplugin.utils.Constants;
 import com.tnpacs.dicoogle.mongoplugin.utils.Dictionary;
+import com.tnpacs.dicoogle.mongoplugin.utils.MongoUtils;
 import org.bson.Document;
+import org.bson.conversions.Bson;
 import org.dcm4che2.data.DicomElement;
 import org.dcm4che2.data.DicomObject;
 import org.dcm4che2.data.Tag;
@@ -56,6 +60,13 @@ public class MongoCallable implements ProgressCallable<Report> {
                 dicomInputStream.close();
 
                 String sopInstanceUid = dicomObject.get(Tag.SOPInstanceUID).getValueAsString(dicomObject.getSpecificCharacterSet(), 0);
+                // if this instance already has a duplicate, skip it
+                if (isSOPInstanceUIDIndexed(sopInstanceUid)) {
+                    logger.warn("SOPInstanceUID already indexed: " + sopInstanceUid);
+                    numErrors++;
+                    continue;
+                }
+
                 Map<String, Object> map = retrieveHeaders(dicomObject);
                 map.put(Constants.METADATA_URI, file.getURI().toString());
                 Document doc = new Document(map);
@@ -94,6 +105,9 @@ public class MongoCallable implements ProgressCallable<Report> {
         if (dicomObject == null) return map;
         Dictionary dict = Dictionary.getInstance();
 
+        // VRMap for storing mapping between tag name and VR
+        Map<String, String> vrMap = new HashMap<>();
+
         for (Iterator<DicomElement> it = dicomObject.datasetIterator(); it.hasNext(); ) {
             DicomElement element = it.next();
             int tag = element.tag();
@@ -101,8 +115,10 @@ public class MongoCallable implements ProgressCallable<Report> {
             // skip pixel data
             if (tag == Tag.PixelData) continue;
 
+            // get tag name and put tag name into VRMap
             String tagName = dict.getName(tag);
             if (tagName == null) tagName = dicomObject.nameOf(tag);
+            vrMap.put(tagName, dicomObject.vrOf(tag).toString());
 
             // sequence
             if (dicomObject.vrOf(tag).toString().equals("SQ") && element.hasItems()) {
@@ -113,12 +129,19 @@ public class MongoCallable implements ProgressCallable<Report> {
             try {
                 String tagValue = dicomObject.get(tag).getValueAsString(dicomObject.getSpecificCharacterSet(), 0);
                 map.put(tagName, tagValue);
-            } catch (UnsupportedOperationException ex) {
+            } catch (Exception ex) {
                 map.put(tagName, null);
             }
         }
+        map.put(Constants.METADATA_VR_MAP, vrMap);
 
         return map;
+    }
+
+    private boolean isSOPInstanceUIDIndexed(String sopInstanceUID) {
+        MongoCollection<Document> metadataCollection = MongoUtils.getMetadataCollection();
+        Bson filter = Filters.eq(Dictionary.getInstance().getName(Tag.SOPInstanceUID), sopInstanceUID);
+        return metadataCollection.countDocuments(filter) > 0;
     }
 
     @Override

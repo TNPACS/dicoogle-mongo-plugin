@@ -15,4 +15,5 @@ public class Constants {
     public static final String ORDER_ATTRIBUTE_ASCENDING = "ascending";
     public static final String ORDER_ATTRIBUTE_DESCENDING = "descending";
     public static final String METADATA_URI = "URI";
+    public static final String METADATA_VR_MAP = "VRMap";
 }

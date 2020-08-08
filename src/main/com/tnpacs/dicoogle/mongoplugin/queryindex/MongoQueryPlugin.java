@@ -43,6 +43,8 @@ public class MongoQueryPlugin extends MongoBasePlugin implements QueryInterface 
     public Iterable<SearchResult> query(String s, Object... objects) throws QueryException {
         if (!isEnabled) return null;
 
+        if (s.isEmpty()) return collection.find().map(this::createSearchResult);
+
         String[] fields = Dictionary.getInstance().getNames();
         try {
             MultiFieldQueryParser parser = new MultiFieldQueryParser(fields, new StandardAnalyzer());
@@ -61,15 +63,13 @@ public class MongoQueryPlugin extends MongoBasePlugin implements QueryInterface 
 
     private SearchResult createSearchResult(Document doc) {
         try {
-//            MongoUri uri = new MongoUri(MongoUtils.getConnectionString(),
-//                    MongoUtils.getDatabase().getName(),
-//                    doc.getString(Dictionary.getInstance().getName(Tag.StudyInstanceUID)),
-//                    doc.getString(Dictionary.getInstance().getName(Tag.SeriesInstanceUID)),
-//                    doc.getString(Dictionary.getInstance().getName(Tag.SOPInstanceUID)));
             HashMap<String, Object> data = new HashMap<>();
             for (String key : doc.keySet()) {
                 Object val = doc.get(key);
-                if (val != null) data.put(key, val.toString());
+                if (val != null) {
+                    if (key.equals(Constants.METADATA_VR_MAP)) data.put(key, val);
+                    else data.put(key, val.toString());
+                }
                 else data.put(key, null);
             }
             return new SearchResult(new URI(doc.getString(Constants.METADATA_URI)), 0.0, data);
